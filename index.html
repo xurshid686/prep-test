@@ -88,6 +88,23 @@
             border-radius: 10px;
             border-left: 4px solid #3498db;
         }
+
+        .review-question-block {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+        }
+
+        .review-question-block.correct {
+            border-left: 4px solid #27ae60;
+            background: #f0fff4;
+        }
+
+        .review-question-block.incorrect {
+            border-left: 4px solid #e74c3c;
+            background: #fff0f0;
+        }
         
         .question-number {
             font-weight: bold;
@@ -126,6 +143,30 @@
             background: #667eea;
             color: white;
         }
+
+        .option.correct-answer {
+            border-color: #27ae60;
+            background: #27ae60;
+            color: white;
+        }
+
+        .option.incorrect-answer {
+            border-color: #e74c3c;
+            background: #e74c3c;
+            color: white;
+        }
+
+        .option.user-correct {
+            border-color: #27ae60;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .option.user-incorrect {
+            border-color: #e74c3c;
+            background: #f8d7da;
+            color: #721c24;
+        }
         
         .btn {
             padding: 15px 30px;
@@ -147,6 +188,16 @@
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
         }
         
         .submit-btn {
@@ -170,6 +221,44 @@
             padding-bottom: 10px;
             border-bottom: 2px solid #ecf0f1;
         }
+
+        .results-summary {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .score-display {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .percentage {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .performance-text {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .section-score {
+            display: inline-block;
+            margin: 0 15px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
         
         .hidden {
             display: none;
@@ -184,9 +273,22 @@
         
         .success-message {
             text-align: center;
-            padding: 40px;
+            padding: 20px;
             color: #27ae60;
-            font-size: 1.3em;
+            font-size: 1.1em;
+            background: #f0fff4;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .explanation {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            font-size: 0.95em;
+            color: #2c3e50;
         }
         
         .error-message {
@@ -245,9 +347,44 @@
                 <p>Submitting your test... Please wait.</p>
             </div>
             
-            <!-- Success Message -->
-            <div id="successMessage" class="success-message hidden">
-                <p>✅ Test submitted successfully! Thank you.</p>
+            <!-- Results Section -->
+            <div id="resultsSection" class="hidden">
+                <div class="success-message">
+                    <p>✅ Test submitted successfully! Here are your results:</p>
+                </div>
+                
+                <div class="results-summary">
+                    <div class="score-display" id="scoreDisplay"></div>
+                    <div class="percentage" id="percentageDisplay"></div>
+                    <div class="performance-text" id="performanceText"></div>
+                    
+                    <div class="section-scores">
+                        <div class="section-score">
+                            <strong>Prepositions:</strong><br>
+                            <span id="prepositionsScore"></span>
+                        </div>
+                        <div class="section-score">
+                            <strong>Quantifiers:</strong><br>
+                            <span id="quantifiersScore"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="section-title">Review Your Answers</h2>
+                
+                <h3 style="color: #2c3e50; margin: 20px 0 15px 0;">Part 1: Prepositions of Time</h3>
+                <div id="prepositionsReview">
+                    <!-- Review for questions 1-20 -->
+                </div>
+                
+                <h3 style="color: #2c3e50; margin: 20px 0 15px 0;">Part 2: How much / How many / A lot of</h3>
+                <div id="quantifiersReview">
+                    <!-- Review for questions 21-25 -->
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-secondary" onclick="location.reload()">Take Test Again</button>
+                </div>
             </div>
         </div>
     </div>
@@ -262,7 +399,8 @@
                 timeSpent: "00:00",
                 answers: {},
                 startTime: null
-            }
+            },
+            results: null
         };
 
         // Questions data
@@ -289,12 +427,47 @@
             { id: 19, question: "I'll be ready _______ a moment.", options: ["in", "on", "at", "X"], correct: "in", section: "prepositions" },
             { id: 20, question: "The train arrives _______ night.", options: ["in", "on", "at", "X"], correct: "at", section: "prepositions" },
             
-            // Part 2: Quantifiers (21-25)
-            { id: 21, question: "How _______ students are in the classroom?", options: ["much", "many"], correct: "many", section: "quantifiers" },
-            { id: 22, question: "I don't have _______ money.", options: ["many", "much", "a lot of"], correct: "much", section: "quantifiers" },
-            { id: 23, question: "She has _______ friends.", options: ["a lot of", "many"], correct: "a lot of", section: "quantifiers" },
-            { id: 24, question: "How _______ water did you drink?", options: ["much", "many"], correct: "much", section: "quantifiers" },
-            { id: 25, question: "There are too _______ cars on the road.", options: ["much", "many"], correct: "many", section: "quantifiers" }
+            // Part 2: Quantifiers (21-25) - Updated without hints
+            { 
+                id: 21, 
+                question: "How _______ students are in your class?", 
+                options: ["much", "many"], 
+                correct: "many", 
+                section: "quantifiers",
+                explanation: "Use 'many' with countable nouns like 'students' because you can count individual students."
+            },
+            { 
+                id: 22, 
+                question: "How _______ money do you have?", 
+                options: ["many", "much"], 
+                correct: "much", 
+                section: "quantifiers",
+                explanation: "Use 'much' with uncountable nouns like 'money'. You cannot count 'money' as one money, two moneys."
+            },
+            { 
+                id: 23, 
+                question: "How _______ water do you drink every day?", 
+                options: ["much", "many"], 
+                correct: "much", 
+                section: "quantifiers",
+                explanation: "Use 'much' with uncountable nouns like 'water'. You cannot count water as one water, two waters."
+            },
+            { 
+                id: 24, 
+                question: "How _______ bananas does he have?", 
+                options: ["much", "many"], 
+                correct: "many", 
+                section: "quantifiers",
+                explanation: "Use 'many' with countable nouns like 'bananas' because you can count individual bananas."
+            },
+            { 
+                id: 25, 
+                question: "There are _______ cars on the road", 
+                options: ["many", "a lot of", "much", "a and b"], 
+                correct: "a and b", 
+                section: "quantifiers",
+                explanation: "Both 'many' and 'a lot of' can be used with countable nouns like 'cars' in positive sentences. 'Much' is only used with uncountable nouns."
+            }
         ];
 
         // Start the test
@@ -391,10 +564,10 @@
             clearInterval(state.timerInterval);
             
             // Calculate results
-            const results = calculateResults();
+            state.results = calculateResults();
             const submissionData = {
                 ...state.testData,
-                results: results,
+                results: state.results,
                 timestamp: new Date().toISOString(),
                 testName: "Prepositions of Time + How much/How many"
             };
@@ -413,7 +586,7 @@
                 
                 if (response.ok) {
                     document.getElementById('loading').classList.add('hidden');
-                    document.getElementById('successMessage').classList.remove('hidden');
+                    showResults();
                 } else {
                     throw new Error(data.error || 'Submission failed');
                 }
@@ -442,7 +615,9 @@
                     userAnswer: userAnswer,
                     correctAnswer: question.correct,
                     isCorrect: isCorrect,
-                    section: question.section
+                    section: question.section,
+                    explanation: question.explanation,
+                    options: question.options
                 });
             });
             
@@ -465,6 +640,79 @@
                 quantifiersTotal: quantifiersResults.length,
                 details: questionResults
             };
+        }
+
+        // Show results to student
+        function showResults() {
+            document.getElementById('resultsSection').classList.remove('hidden');
+            
+            // Update summary
+            document.getElementById('scoreDisplay').textContent = 
+                `${state.results.score} / ${state.results.total}`;
+            document.getElementById('percentageDisplay').textContent = 
+                `${state.results.percentage}%`;
+            document.getElementById('performanceText').textContent = 
+                getPerformanceText(state.results.percentage);
+            document.getElementById('prepositionsScore').textContent = 
+                `${state.results.prepositionsScore} / ${state.results.prepositionsTotal}`;
+            document.getElementById('quantifiersScore').textContent = 
+                `${state.results.quantifiersScore} / ${state.results.quantifiersTotal}`;
+            
+            // Render review sections
+            renderReviewSection('prepositionsReview', 1, 20);
+            renderReviewSection('quantifiersReview', 21, 25);
+        }
+
+        // Render review section for a range of questions
+        function renderReviewSection(containerId, startId, endId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            for (let i = startId; i <= endId; i++) {
+                const questionResult = state.results.details.find(q => q.questionId === i);
+                if (!questionResult) continue;
+                
+                const questionClass = questionResult.isCorrect ? 'correct' : 'incorrect';
+                const statusIcon = questionResult.isCorrect ? '✅' : '❌';
+                
+                const reviewHTML = `
+                    <div class="review-question-block ${questionClass}">
+                        <div class="question-number">
+                            ${statusIcon} Question ${questionResult.questionId}
+                        </div>
+                        <div class="question-text">${questionResult.question}</div>
+                        <div class="options">
+                            ${questionResult.options.map(option => {
+                                let optionClass = 'option';
+                                if (option === questionResult.correctAnswer) {
+                                    optionClass += ' correct-answer';
+                                }
+                                if (option === questionResult.userAnswer && !questionResult.isCorrect) {
+                                    optionClass += ' user-incorrect';
+                                }
+                                if (option === questionResult.userAnswer && questionResult.isCorrect) {
+                                    optionClass += ' user-correct';
+                                }
+                                return `<div class="${optionClass}">${option}</div>`;
+                            }).join('')}
+                        </div>
+                        ${questionResult.explanation ? `
+                            <div class="explanation">
+                                <strong>Explanation:</strong> ${questionResult.explanation}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                container.innerHTML += reviewHTML;
+            }
+        }
+
+        function getPerformanceText(percentage) {
+            if (percentage >= 90) return 'Excellent! 🎉 Outstanding performance!';
+            if (percentage >= 80) return 'Very Good! 👍 Great job!';
+            if (percentage >= 70) return 'Good! 😊 Solid understanding!';
+            if (percentage >= 60) return 'Satisfactory 👌 Keep practicing!';
+            return 'Needs Improvement 📖 Review the material and try again!';
         }
     </script>
 </body>
