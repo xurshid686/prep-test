@@ -48,6 +48,39 @@
             padding: 30px;
         }
         
+        .instructions {
+            background: #fff3cd;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .instructions h2 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+        
+        .instructions ul {
+            color: #856404;
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .warning {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        
         .student-info {
             background: #f8f9fa;
             padding: 25px;
@@ -214,6 +247,17 @@
             padding: 10px;
             border-radius: 8px;
         }
+
+        .switch-warning {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            border: 1px solid #f5c6cb;
+            font-weight: bold;
+        }
         
         .section-title {
             color: #2c3e50;
@@ -300,6 +344,17 @@
             margin: 10px 0;
             border: 1px solid #f5c6cb;
         }
+
+        .auto-submit-message {
+            text-align: center;
+            padding: 20px;
+            color: #e74c3c;
+            background: #fdf2f2;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid #e74c3c;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -310,8 +365,30 @@
         </div>
         
         <div class="form-section">
+            <!-- Instructions -->
+            <div id="instructions">
+                <div class="instructions">
+                    <h2>📝 Test Instructions</h2>
+                    <ul>
+                        <li>This test has <strong>25 questions</strong> divided into two parts</li>
+                        <li>Part 1: 20 questions on Prepositions of Time (in, on, at)</li>
+                        <li>Part 2: 5 questions on How much/How many</li>
+                        <li>You must answer all questions before submitting</li>
+                        <li>A timer will track your total time spent</li>
+                        <li>You can review your answers with explanations after submission</li>
+                    </ul>
+                    <div class="warning">
+                        ⚠️ <strong>Important:</strong> Do not switch tabs or windows during the test. 
+                        The test will be automatically submitted if you switch more than 2 times!
+                    </div>
+                    <button class="btn btn-primary" onclick="showStudentForm()" style="width: 100%; margin-top: 15px;">
+        I Understand - Start Test
+    </button>
+                </div>
+            </div>
+            
             <!-- Student Info Form -->
-            <div id="studentInfoForm">
+            <div id="studentInfoForm" class="hidden">
                 <div class="student-info">
                     <h2>Student Information</h2>
                     <div class="form-group">
@@ -326,6 +403,11 @@
             <div id="testForm" class="hidden">
                 <div class="timer" id="timer">
                     Time spent: <span id="timeDisplay">00:00</span>
+                </div>
+                
+                <div id="switchWarning" class="switch-warning hidden">
+                    ⚠️ Warning: You have switched tabs/windows <span id="switchCount">0</span> time(s). 
+                    The test will be automatically submitted after 2 switches!
                 </div>
                 
                 <h2 class="section-title">Part 1: Prepositions of Time (20 questions)</h2>
@@ -345,6 +427,11 @@
             <!-- Loading State -->
             <div id="loading" class="loading hidden">
                 <p>Submitting your test... Please wait.</p>
+            </div>
+
+            <!-- Auto Submit Message -->
+            <div id="autoSubmitMessage" class="auto-submit-message hidden">
+                <p>🚨 Test automatically submitted due to multiple tab/window switches!</p>
             </div>
             
             <!-- Results Section -->
@@ -400,7 +487,10 @@
                 answers: {},
                 startTime: null
             },
-            results: null
+            results: null,
+            switchCount: 0,
+            maxSwitches: 2,
+            testActive: false
         };
 
         // Questions data
@@ -427,7 +517,7 @@
             { id: 19, question: "I'll be ready _______ a moment.", options: ["in", "on", "at", "X"], correct: "in", section: "prepositions" },
             { id: 20, question: "The train arrives _______ night.", options: ["in", "on", "at", "X"], correct: "at", section: "prepositions" },
             
-            // Part 2: Quantifiers (21-25) - Updated without hints
+            // Part 2: Quantifiers (21-25)
             { 
                 id: 21, 
                 question: "How _______ students are in your class?", 
@@ -470,6 +560,12 @@
             }
         ];
 
+        // Show student form after instructions
+        function showStudentForm() {
+            document.getElementById('instructions').classList.add('hidden');
+            document.getElementById('studentInfoForm').classList.remove('hidden');
+        }
+
         // Start the test
         function startTest() {
             const name = document.getElementById('studentName').value.trim();
@@ -480,12 +576,80 @@
             
             state.testData.name = name;
             state.testData.startTime = new Date().toISOString();
+            state.testActive = true;
             
             document.getElementById('studentInfoForm').classList.add('hidden');
             document.getElementById('testForm').classList.remove('hidden');
             
             renderQuestions();
             startTimer();
+            setupTabSwitchDetection();
+        }
+
+        // Setup tab switch detection
+        function setupTabSwitchDetection() {
+            document.addEventListener('visibilitychange', function() {
+                if (state.testActive && document.hidden) {
+                    state.switchCount++;
+                    updateSwitchWarning();
+                    
+                    if (state.switchCount > state.maxSwitches) {
+                        autoSubmitTest();
+                    }
+                }
+            });
+
+            // Also detect window blur (when user switches to another application)
+            window.addEventListener('blur', function() {
+                if (state.testActive) {
+                    state.switchCount++;
+                    updateSwitchWarning();
+                    
+                    if (state.switchCount > state.maxSwitches) {
+                        autoSubmitTest();
+                    }
+                }
+            });
+        }
+
+        // Update switch warning display
+        function updateSwitchWarning() {
+            const warningElement = document.getElementById('switchWarning');
+            const countElement = document.getElementById('switchCount');
+            
+            if (state.switchCount > 0) {
+                warningElement.classList.remove('hidden');
+                countElement.textContent = state.switchCount;
+            }
+        }
+
+        // Auto submit test due to too many switches
+        function autoSubmitTest() {
+            state.testActive = false;
+            clearInterval(state.timerInterval);
+            
+            document.getElementById('testForm').classList.add('hidden');
+            document.getElementById('autoSubmitMessage').classList.remove('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            
+            // Fill any unanswered questions with empty values
+            questions.forEach(question => {
+                if (!state.testData.answers[question.id]) {
+                    state.testData.answers[question.id] = 'Not answered';
+                }
+            });
+            
+            // Calculate results and show them
+            state.results = calculateResults();
+            const submissionData = {
+                ...state.testData,
+                results: state.results,
+                timestamp: new Date().toISOString(),
+                testName: "Prepositions of Time + How much/How many",
+                autoSubmitted: true
+            };
+            
+            submitToBackend(submissionData);
         }
 
         // Render all questions
@@ -557,6 +721,7 @@
                 return;
             }
             
+            state.testActive = false;
             document.getElementById('errorMessage').classList.add('hidden');
             document.getElementById('testForm').classList.add('hidden');
             document.getElementById('loading').classList.remove('hidden');
@@ -569,9 +734,15 @@
                 ...state.testData,
                 results: state.results,
                 timestamp: new Date().toISOString(),
-                testName: "Prepositions of Time + How much/How many"
+                testName: "Prepositions of Time + How much/How many",
+                autoSubmitted: false
             };
             
+            await submitToBackend(submissionData);
+        }
+
+        // Submit to backend
+        async function submitToBackend(submissionData) {
             try {
                 // Send to backend
                 const response = await fetch('/api/submit', {
@@ -586,6 +757,7 @@
                 
                 if (response.ok) {
                     document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('autoSubmitMessage').classList.add('hidden');
                     showResults();
                 } else {
                     throw new Error(data.error || 'Submission failed');
@@ -595,7 +767,9 @@
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('errorMessage').textContent = 'Error submitting test. Please try again.';
                 document.getElementById('errorMessage').classList.remove('hidden');
-                document.getElementById('testForm').classList.remove('hidden');
+                if (!submissionData.autoSubmitted) {
+                    document.getElementById('testForm').classList.remove('hidden');
+                }
             }
         }
 
@@ -607,7 +781,7 @@
             questions.forEach(question => {
                 const userAnswer = state.testData.answers[question.id];
                 const isCorrect = userAnswer === question.correct;
-                if (isCorrect) correctCount++;
+                if (isCorrect && userAnswer !== 'Not answered') correctCount++;
                 
                 questionResults.push({
                     questionId: question.id,
@@ -627,8 +801,8 @@
             const prepositionsResults = questionResults.filter(q => q.section === 'prepositions');
             const quantifiersResults = questionResults.filter(q => q.section === 'quantifiers');
             
-            const prepositionsCorrect = prepositionsResults.filter(q => q.isCorrect).length;
-            const quantifiersCorrect = quantifiersResults.filter(q => q.isCorrect).length;
+            const prepositionsCorrect = prepositionsResults.filter(q => q.isCorrect && q.userAnswer !== 'Not answered').length;
+            const quantifiersCorrect = quantifiersResults.filter(q => q.isCorrect && q.userAnswer !== 'Not answered').length;
             
             return {
                 score: correctCount,
@@ -638,7 +812,8 @@
                 prepositionsTotal: prepositionsResults.length,
                 quantifiersScore: quantifiersCorrect,
                 quantifiersTotal: quantifiersResults.length,
-                details: questionResults
+                details: questionResults,
+                autoSubmitted: state.testData.answers['Not answered'] !== undefined
             };
         }
 
@@ -679,6 +854,7 @@
                     <div class="review-question-block ${questionClass}">
                         <div class="question-number">
                             ${statusIcon} Question ${questionResult.questionId}
+                            ${questionResult.userAnswer === 'Not answered' ? '<span style="color: #e74c3c;">(Not answered)</span>' : ''}
                         </div>
                         <div class="question-text">${questionResult.question}</div>
                         <div class="options">
@@ -687,7 +863,7 @@
                                 if (option === questionResult.correctAnswer) {
                                     optionClass += ' correct-answer';
                                 }
-                                if (option === questionResult.userAnswer && !questionResult.isCorrect) {
+                                if (option === questionResult.userAnswer && !questionResult.isCorrect && questionResult.userAnswer !== 'Not answered') {
                                     optionClass += ' user-incorrect';
                                 }
                                 if (option === questionResult.userAnswer && questionResult.isCorrect) {
